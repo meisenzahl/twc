@@ -20,38 +20,47 @@ void http_handle_client(int sock, char * ip, int port)
     char * request;
     size_t request_length = 0;
 
+    char * s;
+    int index;
+
+    char * method;
+
     request = (char *) malloc(0);
 
-    while (1) {
-        do {
-            memset(buffer, 0, buffer_len);
-            n = read(sock, buffer, buffer_len - 1);
-            if (n > 0) {
-                request = (char *) realloc(request, request_length + n);
-                request_length += n;
+    do {
+        memset(buffer, 0, buffer_len);
+        n = read(sock, buffer, buffer_len - 1);
+        if (n > 0) {
+            request = (char *) realloc(request, request_length + n);
+            request_length += n;
 
-                strncat(request, buffer, n);
-            }
-            if (n < buffer_len) {
-            	break;
-            }
-        } while (n > 0);
-        if (n < 0) {
-            error("ERROR reading from socket");
+            strncat(request, buffer, n);
         }
-        else if (n == 0) {
-            printf("Socket [%s:%d] was closed.\n", ip, port);
-            exit(EXIT_SUCCESS);
+        if (n < buffer_len) {
+        	break;
         }
-        printf("%s:%d\n", ip, port);
-        printf("%s", request);
-
-        n = write(sock, HTTP_STATUS_CODE_200, strlen(HTTP_STATUS_CODE_200));
-        if (n < 0) {
-            error("ERROR writing to socket");
-        }
-
-        free(request);
-        request_length = 0;
+    } while (n > 0);
+    if (n < 0) {
+        error("ERROR reading from socket");
     }
+    else if (n == 0) {
+        printf("Socket [%s:%d] was closed.\n", ip, port);
+        exit(EXIT_SUCCESS);
+    }
+
+    s = strchr(request, ' ');
+    index = (int) (s - request);
+    method = (char *) malloc(index);
+    strncpy(method, request, index);
+    printf("%s %s\n", ip, method);
+
+    n = write(sock, HTTP_STATUS_CODE_200, strlen(HTTP_STATUS_CODE_200));
+    if (n < 0) {
+        error("ERROR writing to socket");
+    }
+
+    free(request);
+    request_length = 0;
+
+    free(method);
 }
