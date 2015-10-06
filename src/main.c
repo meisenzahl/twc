@@ -7,10 +7,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#include "http_status_codes.h"
-
-void process_client(int sock, char * ip, int port);
-void error(char * msg);
+#include "http_handler.h"
 
 int main(void)
 {
@@ -43,7 +40,7 @@ int main(void)
     }
 
     /* Start listening for the clients */
-    listen(sockfd,5);
+    listen(sockfd, 5);
     clilen = sizeof(cli_addr);
     while (1) {
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, (socklen_t *) &clilen);
@@ -74,7 +71,7 @@ int main(void)
                 inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof ipstr);
             }
 
-            process_client(newsockfd, ipstr, cli_port);
+            http_handle_client(newsockfd, ipstr, cli_port);
             exit(EXIT_SUCCESS);
         }
         else {
@@ -83,34 +80,4 @@ int main(void)
     }
 
     return EXIT_SUCCESS;
-}
-
-void process_client(int sock, char * ip, int port)
-{
-    int n;
-    char buffer[256];
-
-    while(1) {
-        memset(buffer, 0, 256);
-        n = read(sock, buffer, 255);
-        if (n < 0) {
-            error("ERROR reading from socket");
-        }
-        else if (n == 0) {
-            printf("Socket [%s:%d] was closed.\n", ip, port);
-            exit(EXIT_SUCCESS);
-        }
-        printf("%s:%d>%s\n", ip, port, buffer);
-
-        n = write(sock, HTTP_STATUS_CODE_200, strlen(HTTP_STATUS_CODE_200));
-        if (n < 0) {
-            error("ERROR writing to socket");
-        }
-    }
-}
-
-void error(char * msg)
-{
-    perror(msg);
-    exit(EXIT_FAILURE);
 }
