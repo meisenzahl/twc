@@ -7,6 +7,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#include "http_status_codes.h"
+
 void process_client(int sock, char * ip, int port);
 void error(char * msg);
 
@@ -87,7 +89,6 @@ void process_client(int sock, char * ip, int port)
 {
     int n;
     char buffer[256];
-    char response[256] = "0";
 
     while(1) {
         memset(buffer, 0, 256);
@@ -101,7 +102,7 @@ void process_client(int sock, char * ip, int port)
         }
         printf("%s:%d>%s\n", ip, port, buffer);
 
-        n = write(sock, response, strlen(response));
+        n = write(sock, HTTP_STATUS_CODE_200, strlen(HTTP_STATUS_CODE_200));
         if (n < 0) {
             error("ERROR writing to socket");
         }
