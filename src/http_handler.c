@@ -93,6 +93,9 @@ void http_handle_client(int sock, char * ip, int port)
     if (strcmp("/", resource) == 0) {
         content = http_get_content("index.html");
     }
+    else {
+        content = http_get_content(resource + 1);
+    }
 
     if (content.len > 0) {
         memset(buffer, 0, buffer_len);
