@@ -93,7 +93,7 @@ void http_handle_client(int sock, char * ip, int port)
     if (strcmp("/", resource) == 0) {
         content = http_get_content("index.html");
     }
-    else {
+    else if (strncmp("/", resource, 1) == 0){
         content = http_get_content(resource + 1);
     }
 
