@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #include "http_handler.h"
 #include "http_status_codes.h"
@@ -21,9 +23,11 @@ void http_handle_client(int sock, char * ip, int port)
     size_t request_length = 0;
 
     char * s;
+    char * p;
     int index;
 
     char * method;
+    char * resource;
 
     request = (char *) malloc(0);
 
@@ -52,7 +56,14 @@ void http_handle_client(int sock, char * ip, int port)
     index = (int) (s - request);
     method = (char *) malloc(index);
     strncpy(method, request, index);
-    printf("%s %s\n", ip, method);
+
+    p = request + index + 1;
+    s = strchr(p, ' ');
+    index = (int) (s - p);
+    resource = (char *) malloc(index);
+    strncpy(resource, p, index);
+
+    printf("%s %s %s\n", ip, method, resource);
 
     n = write(sock, HTTP_STATUS_CODE_200, strlen(HTTP_STATUS_CODE_200));
     if (n < 0) {
@@ -63,4 +74,13 @@ void http_handle_client(int sock, char * ip, int port)
     request_length = 0;
 
     free(method);
+}
+
+char * http_get_file(const char * filename)
+{
+    int fd = open(filename, O_RDONLY);
+    int len = lseek(fd, 0, SEEK_END);
+    char *data = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    return data;
 }
