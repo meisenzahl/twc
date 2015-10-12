@@ -8,6 +8,26 @@
 #include "http_handler.h"
 #include "http_status_codes.h"
 
+struct http_content http_get_content(const char * filename)
+{
+    int fd = open(filename, O_RDONLY);
+    int len = lseek(fd, 0, SEEK_END);
+    char *data = NULL;
+
+    if (len >= 0) {
+        data = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+    }
+    else {
+        len = 0;
+    }
+
+    struct http_content content;
+    content.data = data;
+    content.len = len;
+
+    return content;
+}
+
 void error(char * msg)
 {
     perror(msg);
@@ -28,6 +48,11 @@ void http_handle_client(int sock, char * ip, int port)
 
     char * method;
     char * resource;
+
+    struct http_content content;
+
+    char * response = NULL;
+    int response_len;
 
     request = (char *) malloc(0);
 
@@ -65,22 +90,46 @@ void http_handle_client(int sock, char * ip, int port)
 
     printf("%s %s %s\n", ip, method, resource);
 
-    n = write(sock, HTTP_STATUS_CODE_200, strlen(HTTP_STATUS_CODE_200));
-    if (n < 0) {
-        error("ERROR writing to socket");
+    if (strcmp("/", resource) == 0) {
+        content = http_get_content("index.html");
+    }
+
+    if (content.len > 0) {
+        memset(buffer, 0, buffer_len);
+        sprintf(buffer, "%d", content.len);
+
+        response_len = strlen(HTTP_STATUS_CODE_200) + strlen("Content-Length: ")
+                     + strlen(buffer) + strlen("\r\n\r\n") + content.len
+                     + strlen("\r\n\r\n") - 4;
+        response = (char *) malloc(response_len);
+
+        if (response) {
+            strcat(response, HTTP_STATUS_CODE_200);
+            strcat(response, "Content-Length: ");
+            strcat(response, buffer);
+            strcat(response, "\r\n\r\n");
+            strcat(response, content.data);
+            strcat(response, "\r\n\r\n");
+        }
+
+        n = write(sock, response, response_len);
+        if (n < 0) {
+            error("ERROR writing to socket");
+        }
+    }
+    else {
+        n = write(sock, HTTP_STATUS_CODE_200_NO_CONTENT,
+                strlen(HTTP_STATUS_CODE_200_NO_CONTENT));
+        if (n < 0) {
+            error("ERROR writing to socket");
+        }
     }
 
     free(request);
     request_length = 0;
 
     free(method);
-}
+    free(resource);
 
-char * http_get_file(const char * filename)
-{
-    int fd = open(filename, O_RDONLY);
-    int len = lseek(fd, 0, SEEK_END);
-    char *data = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
-
-    return data;
+    free(response);
 }
