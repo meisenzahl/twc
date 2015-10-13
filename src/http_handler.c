@@ -91,10 +91,14 @@ void http_handle_client(int sock, char * ip, int port)
     printf("%s %s %s\n", ip, method, resource);
 
     if (strcmp("/", resource) == 0) {
-        content = http_get_content("index.html");
+        if (access("index.html", F_OK) != -1) {
+            content = http_get_content("index.html");
+        }
     }
-    else if (strncmp("/", resource, 1) == 0){
-        content = http_get_content(resource + 1);
+    else if (strncmp("/", resource, 1) == 0) {
+        if (access(resource + 1, F_OK) != -1) {
+            content = http_get_content(resource + 1);
+        }
     }
 
     if (content.len > 0) {
